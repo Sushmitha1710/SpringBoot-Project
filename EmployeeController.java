@@ -1,59 +1,52 @@
-package com.employee.entity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-@Entity
-@Table(name="employee")
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/employees")
 public class EmployeeController {
-    @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
-    private int id;
-    @Column(name="Employee_Name")
-    private String name;
-    @Column(name="Department")
-    private String department;
-    @Column(name="Salary")
-    private int salary;
-    public EmployeeController() {}
-    public EmployeeController(String name, String department, int salary) {
-        super();
 
-        this.name = name;
-        this.department = department;
-        this.salary = salary;
-    }
-    @Override
-    public String toString() {
-        return "Employee [id=" + id + ", name=" + name + ", department=" +
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
-                department + ", salary=" + salary + "]";
+    @GetMapping("/{id}")
+    public ResponseEntity<Employee> getEmployeeById(@PathVariable Long id) {
+        Optional<Employee> employee = employeeRepository.findById(id);
+        return employee.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
-    public int getId() {
-        return id;
+
+    @PostMapping
+    public ResponseEntity<Employee> addEmployee(@RequestBody Employee employee) {
+        Employee savedEmployee = employeeRepository.save(employee);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedEmployee);
     }
-    public void setId(int id) {
-        this.id = id;
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Employee> updateEmployee(@PathVariable Long id, @RequestBody Employee updatedEmployee) {
+        return employeeRepository.findById(id)
+                .map(employee -> {
+                    employee.setFirstName(updatedEmployee.getFirstName());
+                    employee.setLastName(updatedEmployee.getLastName());
+                    employee.setEmail(updatedEmployee.getEmail());
+                    Employee savedEmployee = employeeRepository.save(employee);
+                    return ResponseEntity.ok(savedEmployee);
+                })
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
-    public String getName() {
-        return name;
-    }
-    public void setName(String name) {
-        this.name = name;
-    }
-    public String getDepartment() {
-        return department;
-    }
-    public void setDepartment(String department) {
-        this.department = department;
-    }
-    public int getSalary() {
-        return salary;
-    }
-    public void setSalary(int salary) {
-        this.salary = salary;
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
+        if (employeeRepository.existsById(id)) {
+            employeeRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 }
+
 
